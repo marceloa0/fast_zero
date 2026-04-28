@@ -213,3 +213,6 @@ htmlcov/
 
 # VS Code settings
 .vscode/
+
+# Banco de dados
+database.db
