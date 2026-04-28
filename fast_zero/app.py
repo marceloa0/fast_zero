@@ -13,7 +13,7 @@ def read_root():
 
 
 # CRUD de usuários
-database = []
+database: list[UserDB] = []
 
 
 @app.post("/users/", status_code=HTTPStatus.CREATED, response_model=UserPublic)
@@ -28,6 +28,18 @@ def create_user(user: UserSchema):
 @app.get("/users/", status_code=HTTPStatus.OK, response_model=UserList)
 def read_users():
     return {"users": database}
+
+
+@app.get(
+    "/users/{user_id}", status_code=HTTPStatus.OK, response_model=UserPublic
+)
+def read_user(user_id: int):
+    if user_id > len(database) or user_id < 1:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="User not found"
+        )
+
+    return database[user_id - 1]
 
 
 @app.put("/users/{user_id}", response_model=UserPublic)
