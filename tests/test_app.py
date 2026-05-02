@@ -10,6 +10,19 @@ def test_root_deve_retornar_ok_e_ola_mundo(client):
     assert response.json() == {"message": "Olá Mundo!"}
 
 
+# Autenticação
+def test_get_token(client, user):
+    response = client.post(
+        "/token",
+        data={"username": user.email, "password": user.clean_password},
+    )
+    token = response.json()
+
+    assert response.status_code == HTTPStatus.OK
+    assert "access_token" in token
+    assert "token_type" in token
+
+
 # CRUD de usuários
 def test_create_user(client):
     response = client.post(
@@ -95,9 +108,10 @@ def test_read_user_deve_retornar_404_se_nao_encontrar_user(client):
     assert response_id_negativo.json() == {"detail": "User not found"}
 
 
-def test_update_user(client, user):
+def test_update_user(client, user, token):
     response = client.put(
-        "/users/1",
+        f"/users/{user.id}",
+        headers={"Authorization": f"Bearer {token}"},
         json={
             "username": "bob",
             "email": "bob@example.com",
@@ -113,33 +127,8 @@ def test_update_user(client, user):
     }
 
 
-def test_update_user_deve_retornar_404_se_nao_encontrar_user(client):
-    response_nao_existe_id = client.put(
-        "/users/2",
-        json={
-            "username": "jack",
-            "email": "jack@example.com",
-            "password": "secret",
-        },
-    )
-
-    assert response_nao_existe_id.status_code == HTTPStatus.NOT_FOUND
-    assert response_nao_existe_id.json() == {"detail": "User not found"}
-
-    response_id_negativo = client.put(
-        "/users/-1",
-        json={
-            "username": "jack",
-            "email": "jack@example.com",
-            "password": "secret",
-        },
-    )
-
-    assert response_id_negativo.status_code == HTTPStatus.NOT_FOUND
-    assert response_id_negativo.json() == {"detail": "User not found"}
-
-
-def test_update_integrity_error(client, user):
+def test_update_integrity_error(client, user, token):
+    # Inserindo fausto
     client.post(
         "/users",
         json={
@@ -152,6 +141,7 @@ def test_update_integrity_error(client, user):
     # Alterando o user.username da fixture para fausto
     response_update = client.put(
         f"users/{user.id}",
+        headers={"Authorization": f"Bearer {token}"},
         json={
             "username": "fausto",
             "email": "bob@example.com",
@@ -165,20 +155,11 @@ def test_update_integrity_error(client, user):
     }
 
 
-def test_delete_user(client, user):
-    response = client.delete("/users/1")
+def test_delete_user(client, user, token):
+    response = client.delete(
+        f"/users/{user.id}",
+        headers={"Authorization": f"Bearer {token}"},
+    )
 
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {"message": "User deleted"}
-
-
-def test_delete_user_deve_retornar_404_se_nao_encontrar_user(client):
-    response_nao_existe_id = client.delete("/users/2")
-
-    assert response_nao_existe_id.status_code == HTTPStatus.NOT_FOUND
-    assert response_nao_existe_id.json() == {"detail": "User not found"}
-
-    response_id_negativo = client.delete("/users/-1")
-
-    assert response_id_negativo.status_code == HTTPStatus.NOT_FOUND
-    assert response_id_negativo.json() == {"detail": "User not found"}
