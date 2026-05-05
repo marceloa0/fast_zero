@@ -69,8 +69,8 @@ def test_read_user(client, user):
 
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {
-        "username": "Teste",
-        "email": "teste@test.com",
+        "username": user.username,
+        "email": user.email,
         "id": 1,
     }
 
@@ -106,23 +106,13 @@ def test_update_user(client, user, token):
     }
 
 
-def test_update_integrity_error(client, user, token):
-    # Inserindo fausto
-    client.post(
-        "/users",
-        json={
-            "username": "fausto",
-            "email": "fausto@example.com",
-            "password": "secret",
-        },
-    )
-
-    # Alterando o user.username da fixture para fausto
+def test_update_integrity_error(client, user, other_user, token):
+    # Alterando o username do user para o mesmo de other_user
     response_update = client.put(
         f"users/{user.id}",
         headers={"Authorization": f"Bearer {token}"},
         json={
-            "username": "fausto",
+            "username": other_user.username,
             "email": "bob@example.com",
             "password": "mynewpassword",
         },
@@ -134,6 +124,21 @@ def test_update_integrity_error(client, user, token):
     }
 
 
+def test_update_user_with_wrong_user(client, other_user, token):
+    response = client.put(
+        f"/users/{other_user.id}",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "username": "Bob",
+            "email": "bob@example.com",
+            "password": "mynewpassword",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.FORBIDDEN
+    assert response.json() == {"detail": "Not enough permissions"}
+
+
 def test_delete_user(client, user, token):
     response = client.delete(
         f"/users/{user.id}",
@@ -142,3 +147,13 @@ def test_delete_user(client, user, token):
 
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {"message": "User deleted"}
+
+
+def test_delete_user_with_wrong_user(client, other_user, token):
+    response = client.delete(
+        f"/users/{other_user.id}",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == HTTPStatus.FORBIDDEN
+    assert response.json() == {"detail": "Not enough permissions"}
